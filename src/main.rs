@@ -105,6 +105,7 @@ fn day_02() {
     let games: Vec<Game> = parse_lines(contents.lines());
 
     day_02_part_1(&games);
+    day_02_part_2(&games);
 }
 
 fn parse_lines(lines: Lines) -> Vec<Game> {
@@ -178,6 +179,25 @@ fn day_02_part_1(games: &Vec<Game>) {
     println!("Day 02 part 1 answer is {answer}");
 }
 
+fn day_02_part_2(games: &Vec<Game>) {
+    let mut answer = 0;
+
+    for game in games {
+        let most_red_seen =
+            game.hands.iter().map(|hand| hand.red).max().unwrap_or(0);
+
+        let most_green_seen =
+            game.hands.iter().map(|hand| hand.green).max().unwrap_or(0);
+
+        let most_blue_seen =
+            game.hands.iter().map(|hand| hand.blue).max().unwrap_or(0);
+
+        answer += most_red_seen * most_green_seen * most_blue_seen;
+    }
+
+    println!("Day 02 part 2 answer is {answer}");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -190,7 +210,7 @@ mod tests {
     }
 
     #[test]
-    fn it_parses_red_cube_colour(){
+    fn it_parses_red_cube_colour() {
         let colour = "red";
 
         let result = parse_cube_colour(colour);
@@ -199,7 +219,7 @@ mod tests {
     }
 
     #[test]
-    fn it_parses_green_cube_colour(){
+    fn it_parses_green_cube_colour() {
         let colour = "green";
 
         let result = parse_cube_colour(colour);
@@ -208,7 +228,7 @@ mod tests {
     }
 
     #[test]
-    fn it_parses_blue_cube_colour(){
+    fn it_parses_blue_cube_colour() {
         let colour = "blue";
 
         let result = parse_cube_colour(colour);
