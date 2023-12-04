@@ -1,9 +1,10 @@
 use std::fs;
-use std::str::Lines;
+use std::collections::HashSet;
 
 fn main() {
     day_01();
     day_02();
+    day_03();
 }
 
 fn day_01() {
@@ -102,13 +103,13 @@ fn day_02() {
     let contents = fs::read_to_string(file_path)
         .expect("Should have been able to read the file");
 
-    let games: Vec<Game> = parse_lines(contents.lines());
+    let games: Vec<Game> = parse_lines_day_02(contents.lines());
 
     day_02_part_1(&games);
     day_02_part_2(&games);
 }
 
-fn parse_lines(lines: Lines) -> Vec<Game> {
+fn parse_lines_day_02(lines: std::str::Lines) -> Vec<Game> {
     lines.filter_map(parse_line).collect()
 }
 
@@ -235,4 +236,194 @@ mod tests {
 
         assert_eq!(Some(CubeColour::Blue), result);
     }
+}
+
+struct EnginePart {
+    part_number:u32,
+    symbol: char,
+}
+
+fn day_03() {
+    let file_path = "day03.txt";
+
+    let contents = fs::read_to_string(file_path)
+        .expect("Should have been able to read the file");
+
+    let cells = get_cells(contents);
+
+    let engine_parts = get_engine_parts(&cells);
+
+    day_03_part_1(engine_parts);
+}
+
+fn day_03_part_1(engine_parts: Vec<EnginePart>) {
+    let answer: u32 =
+        engine_parts
+            .iter()
+            .map(|part| part.part_number)
+            .sum();
+
+    println!("Day 03 part 1 answer is {answer}");
+}
+
+fn get_cells(contents: String) -> Vec<Vec<Option<char>>> {
+    let mut cells = Vec::new();
+
+    for line in contents.lines() {
+        let mut cell_row = Vec::new();
+        for c in line.chars() {
+            if c == '.' {
+                cell_row.push(None);
+            } else {
+                cell_row.push(Some(c));
+            }
+        }
+        cells.push(cell_row);
+    }
+
+    cells
+}
+
+fn get_engine_parts(cells: &Vec<Vec<Option<char>>>) -> Vec<EnginePart> {
+    let numbers_and_neighbours = get_numbers_and_neighbours(&cells);
+
+    let mut engine_parts = Vec::new();
+
+    for (part_number, symbol_coords) in numbers_and_neighbours {
+        for (y, x) in symbol_coords {
+            let symbol: char = cells[y as usize][x as usize].expect("Invalid cell coordinates");
+
+            let engine_part =
+                EnginePart { part_number, symbol };
+
+            engine_parts.push(engine_part);
+        }
+    }
+
+    engine_parts
+}
+
+fn get_numbers_and_neighbours(cells: &Vec<Vec<Option<char>>>) -> Vec<(u32, HashSet<(u32, u32)>)> {
+    let mut in_number = false;
+    let mut num_builder: String = String::new();
+    let mut neighbour_builder = HashSet::new();
+
+    let mut result = Vec::new();
+
+    for y in 0..cells.len() {
+        for x in 0..cells[y].len() {
+            match cells[y][x] {
+                None => {
+                    if in_number {
+                        let new_number: u32 = num_builder.parse().expect("Not a number");
+                        result.push((new_number, neighbour_builder.clone()));
+                        in_number = false;
+                        num_builder = String::new();
+                        neighbour_builder = HashSet::new();
+                    }
+                }
+                Some(c) => {
+                    if c.is_numeric() {
+                        if in_number {
+                            num_builder.push(c);
+                        } else {
+                            in_number = true;
+                            num_builder.push(c);
+                        }
+                        let neighbours = neighbour_symbols((y as u32, x as u32), cells);
+                        neighbour_builder.extend(neighbours);
+                    } else {
+                        if in_number {
+                            let new_number: u32 = num_builder.parse().expect("Not a number");
+                            result.push((new_number, neighbour_builder.clone()));
+                            in_number = false;
+                            num_builder = String::new();
+                            neighbour_builder = HashSet::new();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    result
+}
+
+fn neighbour_symbols(cell: (u32, u32), cells: &Vec<Vec<Option<char>>>) -> Vec<(u32, u32)> {
+    let potentials = potential_neighbours(cell);
+
+    potentials.iter()
+        .filter(|&&(y, x)| {
+            cells.get(y as usize)
+                .and_then(|row| row.get(x as usize))
+                .map_or(false, |cell| match cell {
+                    Some(c) => !c.is_numeric(),
+                    _ => false,
+                })
+        })
+        .cloned()
+        .collect()
+}
+
+fn potential_neighbours(cell: (u32, u32)) -> Vec<(u32, u32)> {
+    let above = potential_neighbours_above(cell);
+    let same_row = potential_neighbours_same_row(cell);
+    let below = potential_neighbours_below(cell);
+
+    let mut neighbours = Vec::new();
+
+    neighbours.extend(above);
+    neighbours.extend(same_row);
+    neighbours.extend(below);
+
+    sort_cells(&mut neighbours);
+
+    neighbours
+}
+
+fn potential_neighbours_above((y, x): (u32, u32)) -> Vec<(u32, u32)> {
+    if y == 0 {
+        return Vec::with_capacity(0);
+    }
+
+    let mut list = Vec::with_capacity(3);
+
+    if x > 0 {
+        list.push((y - 1, x - 1));
+    }
+    list.push((y - 1, x));
+    list.push((y - 1, x + 1));
+
+    list
+}
+
+fn potential_neighbours_same_row((y, x): (u32, u32)) -> Vec<(u32, u32)> {
+    let mut list = Vec::with_capacity(2);
+
+    if x > 0 {
+        list.push((y, x - 1));
+    }
+
+    list.push((y, x + 1));
+
+    list
+}
+
+fn potential_neighbours_below((y, x): (u32, u32)) -> Vec<(u32, u32)> {
+    let mut list = Vec::with_capacity(3);
+
+    if x > 0 {
+        list.push((y + 1, x - 1));
+    }
+
+    list.push((y + 1, x));
+    list.push((y + 1, x + 1));
+
+    list
+}
+
+fn sort_cells(neighbours: &mut Vec<(u32, u32)>) {
+    neighbours.sort_by(|(y1, x1), (y2, x2)| {
+        y1.cmp(&y2).then(x1.cmp(&x2))
+    });
 }
