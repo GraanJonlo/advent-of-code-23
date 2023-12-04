@@ -5,6 +5,7 @@ fn main() {
     day_01();
     day_02();
     day_03();
+    day_04();
 }
 
 fn day_01() {
@@ -110,10 +111,10 @@ fn day_02() {
 }
 
 fn parse_lines_day_02(lines: std::str::Lines) -> Vec<Game> {
-    lines.filter_map(parse_line).collect()
+    lines.filter_map(parse_line_day_02).collect()
 }
 
-fn parse_line(line: &str) -> Option<Game> {
+fn parse_line_day_02(line: &str) -> Option<Game> {
     let mut parts = line.split(':');
     let id_part = parts.next()?.trim();
     let hands_parts = parts.next()?.trim().split(';');
@@ -486,4 +487,67 @@ fn sort_cells(neighbours: &mut Vec<(u32, u32)>) {
     neighbours.sort_by(|(y1, x1), (y2, x2)| {
         y1.cmp(&y2).then(x1.cmp(&x2))
     });
+}
+
+struct Card {
+    id: u32,
+    winning_numbers: HashSet<u32>,
+    our_numbers: Vec<u32>,
+}
+
+fn day_04() {
+    let file_path = "day04.txt";
+
+    let contents = fs::read_to_string(file_path)
+        .expect("Should have been able to read the file");
+
+    let cards = parse_lines_day_04(contents.lines());
+
+    day_04_part_1(cards);
+}
+
+fn day_04_part_1(cards: Vec<Card>) {
+    let mut acc: u32 = 0;
+
+    for card in cards {
+        let mut card_score = 0;
+
+        for num in card.our_numbers {
+            if card.winning_numbers.contains(&num) {
+                if card_score == 0 {
+                    card_score = 1;
+                } else {
+                    card_score *= 2;
+                }
+            }
+        }
+
+        acc += card_score;
+    }
+
+    println!("Day 04 part 1 answer s {acc}");
+}
+
+fn parse_lines_day_04(lines: std::str::Lines) -> Vec<Card> {
+    lines.filter_map(crate::parse_line_day_04).collect()
+}
+
+fn parse_line_day_04(line: &str) -> Option<Card> {
+    let mut parts1 = line.split(':');
+
+    let id = parts1.next()?.trim().split_whitespace().last()?.parse().ok()?;
+
+    let mut parts2 = parts1.next()?.trim().split('|');
+
+    let left = parts2.next()?.trim().split_whitespace();
+
+    let right = parts2.next()?.trim().split_whitespace();
+
+    let winning_numbers: HashSet<u32> =
+        left.filter_map(|str| str.parse().ok())
+            .collect();
+
+    let our_numbers: Vec<u32> = right.filter_map(|str| str.parse().ok()).collect();
+
+    Some(Card { id, winning_numbers, our_numbers})
 }
