@@ -1,5 +1,5 @@
 use std::fs;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 fn main() {
     day_01();
@@ -239,8 +239,13 @@ mod tests {
 }
 
 struct EnginePart {
-    part_number:u32,
+    part_number: u32,
     symbol: char,
+}
+
+struct Gear {
+    part_number1: u32,
+    part_number2: u32,
 }
 
 fn day_03() {
@@ -252,8 +257,10 @@ fn day_03() {
     let cells = get_cells(contents);
 
     let engine_parts = get_engine_parts(&cells);
+    let gears = get_gears(&cells);
 
     day_03_part_1(engine_parts);
+    day_03_part_2(gears);
 }
 
 fn day_03_part_1(engine_parts: Vec<EnginePart>) {
@@ -264,6 +271,16 @@ fn day_03_part_1(engine_parts: Vec<EnginePart>) {
             .sum();
 
     println!("Day 03 part 1 answer is {answer}");
+}
+
+fn day_03_part_2(gears: Vec<Gear>) {
+    let answer: u32 =
+        gears
+            .iter()
+            .map(|gear| gear.part_number1 * gear.part_number2)
+            .sum();
+
+    println!("Day 03 part 2 answer is {answer}");
 }
 
 fn get_cells(contents: String) -> Vec<Vec<Option<char>>> {
@@ -301,6 +318,49 @@ fn get_engine_parts(cells: &Vec<Vec<Option<char>>>) -> Vec<EnginePart> {
     }
 
     engine_parts
+}
+
+fn get_gears (cells: &Vec<Vec<Option<char>>>) -> Vec<Gear> {
+    let numbers_and_neighbours = get_numbers_and_neighbours(&cells);
+
+    let lookup = invert_structure(numbers_and_neighbours);
+
+    let mut gears = Vec::new();
+
+    for y in 0..cells.len() {
+        for x in 0..cells[y].len() {
+            match cells[y][x] {
+                Some('*') => {
+                    let part_numbers =
+                        lookup.get(&(y as u32,x as u32)).expect("Blah!");
+
+                    if part_numbers.len() == 2 {
+                        let gear =
+                            Gear { part_number1:part_numbers[0], part_number2:part_numbers[1]};
+
+                        gears.push(gear);
+                    }
+                },
+                _ => (),
+            }
+        }
+    }
+
+    gears
+}
+
+fn invert_structure(vec: Vec<(u32, HashSet<(u32, u32)>)>) -> HashMap<(u32, u32), Vec<u32>> {
+    let mut map = HashMap::new();
+
+    for (number, coordinates_set) in vec {
+        for coordinates in coordinates_set {
+            map.entry(coordinates)
+                .or_insert_with(Vec::new)
+                .push(number);
+        }
+    }
+
+    map
 }
 
 fn get_numbers_and_neighbours(cells: &Vec<Vec<Option<char>>>) -> Vec<(u32, HashSet<(u32, u32)>)> {
