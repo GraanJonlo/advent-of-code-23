@@ -503,16 +503,17 @@ fn day_04() {
 
     let cards = parse_lines_day_04(contents.lines());
 
-    day_04_part_1(cards);
+    day_04_part_1(&cards);
+    day_04_part_2(&cards);
 }
 
-fn day_04_part_1(cards: Vec<Card>) {
+fn day_04_part_1(cards: &Vec<Card>) {
     let mut acc: u32 = 0;
 
     for card in cards {
         let mut card_score = 0;
 
-        for num in card.our_numbers {
+        for &num in &card.our_numbers {
             if card.winning_numbers.contains(&num) {
                 if card_score == 0 {
                     card_score = 1;
@@ -526,6 +527,37 @@ fn day_04_part_1(cards: Vec<Card>) {
     }
 
     println!("Day 04 part 1 answer s {acc}");
+}
+
+fn day_04_part_2(cards: &Vec<Card>) {
+    let mut card_hash_table: HashMap<u32, (&Card,u32)> = HashMap::new();
+
+    for card in cards {
+        card_hash_table.insert(card.id, (card, 1));
+    }
+
+    for id in cards.iter().map(|c| c.id) {
+        let &(card, count) = card_hash_table.get(&id).expect("Can't find card");
+
+        let mut next_card: u32 = 1;
+
+        for &num in &card.our_numbers {
+            if card.winning_numbers.contains(&num) {
+                let key = card.id + next_card;
+
+                if let Some((_, mut_count)) = card_hash_table.get_mut(&key) {
+                    *mut_count += count;
+                }
+
+                next_card += 1;
+            }
+        }
+    }
+
+    let answer: u32 =
+        card_hash_table.values().map(|(_,count)| count).sum();
+
+    println!("Day 04 part 2 answer s {answer}");
 }
 
 fn parse_lines_day_04(lines: std::str::Lines) -> Vec<Card> {
